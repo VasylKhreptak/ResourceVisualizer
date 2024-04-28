@@ -42,6 +42,7 @@ namespace Plugins.ResourceVisualizer
             resource.anchoredPosition3D = WorldToAnchoredPoint(worldSpawnPoint);
             resource.localScale = Vector3.one * _preferences.StartScale.Random();
             resource.localRotation = Quaternion.Euler(0f, 0f, _preferences.StartRotation.Random());
+            resource.SetAsLastSibling();
         }
 
         private async UniTask MoveResource(RectTransform resource, Transform target, CancellationToken cancellationToken)
