@@ -22,16 +22,16 @@ namespace Plugins.ResourceVisualizer
 
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public void Collect(Vector3 worldStartPosition, Transform target, Action<int> onCollected = null, Action onCollectedAll = null) =>
-            Collect(worldStartPosition, target, onCollected, onCollectedAll, _cancellationTokenSource.Token);
+        public void Collect(Vector3 origin, Transform target, Action<int> onCollected = null, Action onCollectedAll = null) =>
+            Collect(origin, target, onCollected, onCollectedAll, _cancellationTokenSource.Token);
 
-        private async void Collect(Vector3 worldStartPosition, Transform target, Action<int> onCollected, Action onCollectedAll,
+        private async void Collect(Vector3 origin, Transform target, Action<int> onCollected, Action onCollectedAll,
             CancellationToken cancellationToken)
         {
             GameObject resource = Instantiate();
             RectTransform resourceRectTransform = resource.GetComponent<RectTransform>();
 
-            Vector2 anchoredPosition = WorldToAnchoredPoint(worldStartPosition);
+            Vector2 anchoredPosition = WorldToAnchoredPoint(origin);
 
             resourceRectTransform.SetParent(_resourcesRoot.RectTransform);
             resourceRectTransform.anchoredPosition3D = anchoredPosition;
@@ -51,24 +51,29 @@ namespace Plugins.ResourceVisualizer
 
             Vector2 direction = Random.insideUnitCircle;
 
+            Vector3 lastTargetPosition = target.position;
+
             while (cancellationToken.IsCancellationRequested == false)
             {
                 bool canceled = await UniTask.Yield().ToUniTask().AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
 
-                if (canceled)
+                if (canceled || resource == null)
                     break;
 
                 resource.anchoredPosition += direction * moveSpeed * Time.deltaTime;
                 resource.localScale = Vector3.Lerp(resource.localScale, Vector3.one, _preferences.ScaleSpeed * Time.deltaTime);
                 resource.localRotation = Quaternion.Lerp(resource.localRotation, Quaternion.identity, _preferences.RotationSpeed * Time.deltaTime);
 
-                Vector2 targetDirection = (target.position - resource.position).normalized;
+                Vector2 targetDirection = (lastTargetPosition - resource.position).normalized;
                 direction = Vector2.Lerp(direction, targetDirection, aimSpeed * Time.deltaTime);
+
+                if (target != null)
+                    lastTargetPosition = target.position;
 
                 moveSpeed += _preferences.MoveAcceleration;
                 aimSpeed += _preferences.AimAcceleration;
 
-                if (Vector2.Distance(resource.anchoredPosition, WorldToAnchoredPoint(target.position)) < _preferences.DistanceThreshold)
+                if (Vector2.Distance(resource.anchoredPosition, WorldToAnchoredPoint(lastTargetPosition)) < _preferences.DistanceThreshold)
                     break;
             }
 
