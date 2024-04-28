@@ -10,13 +10,11 @@ namespace Plugins.ResourceVisualizer
     public abstract class ResourceVisualizer : IDisposable
     {
         private readonly ResourcesRoot _resourcesRoot;
-        private readonly Camera _camera;
         private readonly Preferences _preferences;
 
-        protected ResourceVisualizer(ResourcesRoot resourcesRoot, Camera camera, Preferences preferences)
+        protected ResourceVisualizer(ResourcesRoot resourcesRoot, Preferences preferences)
         {
             _resourcesRoot = resourcesRoot;
-            _camera = camera;
             _preferences = preferences;
         }
 
@@ -28,20 +26,22 @@ namespace Plugins.ResourceVisualizer
         private async void Collect(Vector3 origin, Transform target, Action<int> onCollected, Action onCollectedAll,
             CancellationToken cancellationToken)
         {
-            GameObject resource = Instantiate();
-            RectTransform resourceRectTransform = resource.GetComponent<RectTransform>();
+            GameObject resourceInstance = Instantiate();
+            RectTransform resource = resourceInstance.GetComponent<RectTransform>();
+            PrepareResource(resource, origin);
 
-            Vector2 anchoredPosition = WorldToAnchoredPoint(origin);
-
-            resourceRectTransform.SetParent(_resourcesRoot.RectTransform);
-            resourceRectTransform.anchoredPosition3D = anchoredPosition;
-            resourceRectTransform.localScale = Vector3.one * _preferences.StartScale.Random();
-            resourceRectTransform.localRotation = Quaternion.Euler(0f, 0f, _preferences.StartRotation.Random());
-
-            await MoveResource(resourceRectTransform, target, cancellationToken);
+            await MoveResource(resource, target, cancellationToken);
 
             onCollected?.Invoke(1);
             onCollectedAll?.Invoke();
+        }
+
+        private void PrepareResource(RectTransform resource, Vector3 worldSpawnPoint)
+        {
+            resource.SetParent(_resourcesRoot.RectTransform);
+            resource.anchoredPosition3D = WorldToAnchoredPoint(worldSpawnPoint);
+            resource.localScale = Vector3.one * _preferences.StartScale.Random();
+            resource.localRotation = Quaternion.Euler(0f, 0f, _preferences.StartRotation.Random());
         }
 
         private async UniTask MoveResource(RectTransform resource, Transform target, CancellationToken cancellationToken)
