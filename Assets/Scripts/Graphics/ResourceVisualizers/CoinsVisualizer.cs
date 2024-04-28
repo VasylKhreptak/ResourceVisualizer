@@ -15,6 +15,8 @@ namespace Graphics.ResourceVisualizers
             _staticDataService = staticDataService;
         }
 
-        protected override GameObject CreateResourceInstance() => Object.Instantiate(_staticDataService.Prefabs[Prefab.Coin]);
+        protected override GameObject Instantiate() => Object.Instantiate(_staticDataService.Prefabs[Prefab.Coin]);
+        
+        protected override void Destroy(GameObject gameObject) => Object.Destroy(gameObject);
     }
 }

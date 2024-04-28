@@ -928,7 +928,7 @@ MonoBehaviour:
   _coin: {fileID: 433252433}
   _camera: {fileID: 1803727000}
   _coinsVisualizerPreferences:
-    _distanceThreshold: 10
+    _distanceThreshold: 20
     _startScale:
       Min: 0.2
       Max: 0.7
@@ -936,15 +936,15 @@ MonoBehaviour:
       Min: 0
       Max: 360
     _startMoveSpeed:
-      Min: 700
-      Max: 800
+      Min: 500
+      Max: 600
     _startAimSpeed:
-      Min: 2
-      Max: 3
+      Min: 5
+      Max: 6
     _scaleSpeed: 4
     _rotationSpeed: 2
-    _moveAcceleration: 20
-    _aimAcceleration: 0.03
+    _moveAcceleration: 15
+    _aimAcceleration: 0.2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

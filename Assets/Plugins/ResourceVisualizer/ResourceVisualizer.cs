@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Plugins.MinMaxProperties;
 using UnityEngine;
-using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace Plugins.ResourceVisualizer
@@ -23,19 +22,19 @@ namespace Plugins.ResourceVisualizer
 
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public void Collect(Vector3 worldSpawnPosition, Transform target, Action<int> onCollected = null, Action onCollectedAll = null) =>
-            Collect(worldSpawnPosition, target, onCollected, onCollectedAll, _cancellationTokenSource.Token);
+        public void Collect(Vector3 worldStartPosition, Transform target, Action<int> onCollected = null, Action onCollectedAll = null) =>
+            Collect(worldStartPosition, target, onCollected, onCollectedAll, _cancellationTokenSource.Token);
 
-        private async void Collect(Vector3 worldSpawnPosition, Transform target, Action<int> onCollected, Action onCollectedAll,
+        private async void Collect(Vector3 worldStartPosition, Transform target, Action<int> onCollected, Action onCollectedAll,
             CancellationToken cancellationToken)
         {
-            GameObject resource = CreateResourceInstance();
+            GameObject resource = Instantiate();
             RectTransform resourceRectTransform = resource.GetComponent<RectTransform>();
 
-            Vector2 anchoredPosition = WorldToAnchoredPoint(worldSpawnPosition);
+            Vector2 anchoredPosition = WorldToAnchoredPoint(worldStartPosition);
 
             resourceRectTransform.SetParent(_resourcesRoot.RectTransform);
-            resourceRectTransform.anchoredPosition = anchoredPosition;
+            resourceRectTransform.anchoredPosition3D = anchoredPosition;
             resourceRectTransform.localScale = Vector3.one * _preferences.StartScale.Random();
             resourceRectTransform.localRotation = Quaternion.Euler(0f, 0f, _preferences.StartRotation.Random());
 
@@ -45,7 +44,7 @@ namespace Plugins.ResourceVisualizer
             onCollectedAll?.Invoke();
         }
 
-        private async UniTask MoveResource(RectTransform resourceRectTransform, Transform target, CancellationToken cancellationToken)
+        private async UniTask MoveResource(RectTransform resource, Transform target, CancellationToken cancellationToken)
         {
             float moveSpeed = _preferences.StartMoveSpeed.Random();
             float aimSpeed = _preferences.StartAimSpeed.Random();
@@ -59,31 +58,31 @@ namespace Plugins.ResourceVisualizer
                 if (canceled)
                     break;
 
-                resourceRectTransform.anchoredPosition += direction * moveSpeed * Time.deltaTime;
-                resourceRectTransform.localScale =
-                    Vector3.Lerp(resourceRectTransform.localScale, Vector3.one, _preferences.ScaleSpeed * Time.deltaTime);
-                resourceRectTransform.localRotation =
-                    Quaternion.Lerp(resourceRectTransform.localRotation, Quaternion.identity, _preferences.RotationSpeed * Time.deltaTime);
+                resource.anchoredPosition += direction * moveSpeed * Time.deltaTime;
+                resource.localScale = Vector3.Lerp(resource.localScale, Vector3.one, _preferences.ScaleSpeed * Time.deltaTime);
+                resource.localRotation = Quaternion.Lerp(resource.localRotation, Quaternion.identity, _preferences.RotationSpeed * Time.deltaTime);
 
-                Vector2 targetDirection = (target.position - resourceRectTransform.position).normalized;
+                Vector2 targetDirection = (target.position - resource.position).normalized;
                 direction = Vector2.Lerp(direction, targetDirection, aimSpeed * Time.deltaTime);
 
                 moveSpeed += _preferences.MoveAcceleration;
                 aimSpeed += _preferences.AimAcceleration;
 
-                if (Vector2.Distance(resourceRectTransform.position, target.position) < _preferences.DistanceThreshold)
+                if (Vector2.Distance(resource.anchoredPosition, WorldToAnchoredPoint(target.position)) < _preferences.DistanceThreshold)
                     break;
             }
 
-            if (resourceRectTransform != null)
-                Object.Destroy(resourceRectTransform.gameObject);
+            if (resource != null)
+                Destroy(resource.gameObject);
         }
 
         public void Dispose() => _cancellationTokenSource.Cancel();
 
         #region TemplateMethods
 
-        protected abstract GameObject CreateResourceInstance();
+        protected abstract GameObject Instantiate();
+
+        protected abstract void Destroy(GameObject gameObject);
 
         #endregion
 
