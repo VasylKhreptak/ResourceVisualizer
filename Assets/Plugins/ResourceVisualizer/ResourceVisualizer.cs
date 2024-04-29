@@ -28,10 +28,9 @@ namespace Plugins.ResourceVisualizer
 
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public void Collect(int amount, Vector3 fromWorld, Transform to, Action onCompleted = null) =>
-            Collect(amount, fromWorld, to, _cancellationTokenSource.Token, onCompleted);
+        public UniTask Collect(int amount, Vector3 fromWorld, Transform to) => Collect(amount, fromWorld, to, _cancellationTokenSource.Token);
 
-        private async void Collect(int amount, Vector3 fromWorld, Transform to, CancellationToken cancellationToken, Action onCompleted = null)
+        private async UniTask Collect(int amount, Vector3 fromWorld, Transform to, CancellationToken cancellationToken)
         {
             if (amount <= 0)
                 return;
@@ -77,8 +76,6 @@ namespace Plugins.ResourceVisualizer
             }
 
             await UniTask.WhenAll(resourceTasks);
-
-            onCompleted?.Invoke();
         }
 
         private void PrepareResource(RectTransform resource, Vector3 worldSpawnPoint)

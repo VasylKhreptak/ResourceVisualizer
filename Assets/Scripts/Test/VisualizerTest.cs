@@ -35,11 +35,13 @@ namespace Test
                 Spawn();
             else if (Input.GetKeyDown(KeyCode.C))
                 ClearCoins();
+            else if (Input.GetKeyDown(KeyCode.D))
+                Dispose();
         }
 
         #endregion
 
-        private void Spawn()
+        private async void Spawn()
         {
             Camera camera = null;
 
@@ -50,9 +52,13 @@ namespace Test
 
             transform.position = position;
 
-            _coinsVisualizer.Collect(_amount, position, _coin.transform, () => Debug.Log("Completed"));
+            await _coinsVisualizer.Collect(_amount, position, _coin.transform);
+
+            Debug.Log("Completed");
         }
 
         private void ClearCoins() => _persistentDataService.Data.PlayerData.Coins.Clear();
+
+        private void Dispose() => _coinsVisualizer.Dispose();
     }
 }
