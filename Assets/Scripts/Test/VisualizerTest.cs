@@ -50,7 +50,7 @@ namespace Test
         {
             await _coinsVisualizer.Collect(_amount, GetMouseWorldPosition(), () => _coin.transform.position, _cts.Token);
 
-            Debug.Log("Collected");
+            Debug.Log("Collected all");
         }
 
         private void ClearCoins() => _persistentDataService.Data.PlayerData.Coins.Clear();
@@ -73,7 +73,7 @@ namespace Test
         {
             await _coinsVisualizer.Spend(_amount, _coin.transform.position, GetMouseWorldPosition, _cts.Token);
 
-            Debug.Log("Spent");
+            Debug.Log("Spent all");
         }
     }
 }

@@ -64,6 +64,7 @@ namespace Plugins.ResourceVisualizer
                     await MoveResource(resource, worldPositionGetter, cancellationToken);
 
                     _resourceBank.Add(amountPerResource);
+                    OnCollected(amountPerResource);
                 });
 
                 resourceTasks.Add(task);
@@ -113,6 +114,7 @@ namespace Plugins.ResourceVisualizer
                     _plannedSpendAmount -= amountPerResource;
 
                     _resourceBank.Spend(amountPerResource);
+                    OnSpent(amountPerResource);
 
                     await MoveResource(resource, worldPositionGetter, cancellationToken);
 
@@ -178,6 +180,14 @@ namespace Plugins.ResourceVisualizer
         protected abstract GameObject Instantiate();
 
         protected abstract void Destroy(GameObject gameObject);
+
+        #endregion
+
+        #region Callbacs
+
+        protected abstract void OnSpent(int amount);
+
+        protected abstract void OnCollected(int amount);
 
         #endregion
 
