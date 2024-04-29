@@ -1,12 +1,13 @@
 using Graphics.ResourceVisualizers;
 using Graphics.UI;
+using Infrastructure.Services.PersistentData.Core;
 using Plugins.ResourceVisualizer;
 using UnityEngine;
 using Zenject;
 
 namespace Test
 {
-    public class CoinSpawner : MonoBehaviour
+    public class VisuzlierTest : MonoBehaviour
     {
         [Header("Preferences")]
         [SerializeField] private int _amount = 100;
@@ -14,22 +15,32 @@ namespace Test
         private Coin _coin;
         private CoinsVisualizer _coinsVisualizer;
         private ResourcesRoot _resourcesRoot;
+        private IPersistentDataService _persistentDataService;
 
         [Inject]
-        private void Constructor(Coin coin, CoinsVisualizer coinsVisualizer, ResourcesRoot resourcesRoot)
+        private void Constructor(Coin coin, CoinsVisualizer coinsVisualizer, ResourcesRoot resourcesRoot,
+            IPersistentDataService persistentDataService)
         {
             _coin = coin;
             _coinsVisualizer = coinsVisualizer;
             _resourcesRoot = resourcesRoot;
+            _persistentDataService = persistentDataService;
         }
 
         #region MonoBehaviour
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0) == false)
-                return;
+            if (Input.GetMouseButtonDown(0))
+                Spawn();
+            else if (Input.GetKeyDown(KeyCode.C))
+                ClearCoins();
+        }
 
+        #endregion
+
+        private void Spawn()
+        {
             Camera camera = null;
 
             if (_resourcesRoot.Canvas.renderMode == RenderMode.ScreenSpaceCamera)
@@ -42,6 +53,6 @@ namespace Test
             _coinsVisualizer.Collect(_amount, position, _coin.transform, () => Debug.Log("Completed"));
         }
 
-        #endregion
+        private void ClearCoins() => _persistentDataService.Data.PlayerData.Coins.Clear();
     }
 }

@@ -946,29 +946,33 @@ MonoBehaviour:
     _rotationSpeed: 5
     _moveAcceleration: 15
     _aimAcceleration: 0.1
-    _maxAmount: 100
-    _maxCount: 10
+    _amount:
+      Min: 1
+      Max: 300
+    _count:
+      Min: 5
+      Max: 20
     _interval:
-      Min: 0.001
-      Max: 0.1
+      Min: 0.01
+      Max: 0.03
     _countCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
         time: 0
         value: 0
-        inSlope: 1
-        outSlope: 1
-        tangentMode: 34
+        inSlope: 2
+        outSlope: 2
+        tangentMode: 0
         weightedMode: 0
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
         value: 1
-        inSlope: 1
-        outSlope: 1
-        tangentMode: 34
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
         weightedMode: 0
         inWeight: 0
         outWeight: 0

@@ -6,6 +6,7 @@ using Plugins.Banks.Core;
 using Plugins.Banks.Integer;
 using Plugins.MinMaxProperties;
 using UnityEngine;
+using AnimationCurveExtensions = Plugins.Extensions.AnimationCurveExtensions;
 using Random = UnityEngine.Random;
 
 namespace Plugins.ResourceVisualizer
@@ -41,16 +42,21 @@ namespace Plugins.ResourceVisualizer
             float delayIncrement = GetInterval(amount);
 
             int count = GetCount(amount);
-            int maxAmountPerResource = amount % count == 0 ? amount / count : amount / count + 1;
+            int maxAmountPerResource = Mathf.FloorToInt((float)amount / count);
+            int transferredAmount = 0;
 
             for (int i = 0; i < count; i++)
             {
                 int index = i;
+                float capturedDelay = delay;
+
+                int amountPerResource = index + 1 == count ? amount - transferredAmount : maxAmountPerResource;
+                transferredAmount += amountPerResource;
 
                 UniTask task = UniTask.Create(async () =>
                 {
                     bool canceled = await UniTask
-                        .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+                        .Delay(TimeSpan.FromSeconds(capturedDelay), cancellationToken: cancellationToken)
                         .SuppressCancellationThrow();
 
                     if (canceled)
@@ -61,8 +67,6 @@ namespace Plugins.ResourceVisualizer
                     PrepareResource(resource, fromWorld);
 
                     await MoveResource(resource, to, cancellationToken);
-
-                    int amountPerResource = index != count - 1 ? maxAmountPerResource : amount - maxAmountPerResource * index;
 
                     _resourceBank.Add(amountPerResource);
                 });
@@ -149,15 +153,15 @@ namespace Plugins.ResourceVisualizer
 
         private int GetCount(int amount)
         {
-            float t = (float)amount / _preferences.MaxAmount;
-            return Mathf.CeilToInt(_preferences.CountCurve.Evaluate(t) * _preferences.MaxCount);
+            float evaluatedCount = AnimationCurveExtensions.Evaluate(_preferences.CountCurve, amount, _preferences.Amount.Min,
+                _preferences.Amount.Max, _preferences.Count.Min, _preferences.Count.Max);
+
+            return Mathf.Min(amount, (int)evaluatedCount);
         }
 
-        private float GetInterval(int amount)
-        {
-            float t = (float)amount / _preferences.MaxAmount;
-            return _preferences.IntervalCurve.Evaluate(t) * _preferences.Interval.Max;
-        }
+        private float GetInterval(int amount) =>
+            AnimationCurveExtensions.Evaluate(_preferences.IntervalCurve, amount, _preferences.Amount.Min, _preferences.Amount.Max,
+                _preferences.Interval.Max, _preferences.Interval.Min);
 
         [Serializable]
         public class Preferences
@@ -171,8 +175,8 @@ namespace Plugins.ResourceVisualizer
             [SerializeField] private float _rotationSpeed = 5f;
             [SerializeField] private float _moveAcceleration;
             [SerializeField] private float _aimAcceleration;
-            [SerializeField] private int _maxAmount = 100;
-            [SerializeField] private int _maxCount = 10;
+            [SerializeField] private IntMinMax _amount = new IntMinMax(1, 100);
+            [SerializeField] private IntMinMax _count = new IntMinMax(1, 30);
             [SerializeField] private FloatMinMax _interval = new FloatMinMax(0.001f, 0.1f);
             [SerializeField] private AnimationCurve _countCurve;
             [SerializeField] private AnimationCurve _intervalCurve;
@@ -186,8 +190,8 @@ namespace Plugins.ResourceVisualizer
             public float RotationSpeed => _rotationSpeed;
             public float MoveAcceleration => _moveAcceleration;
             public float AimAcceleration => _aimAcceleration;
-            public int MaxAmount => _maxAmount;
-            public int MaxCount => _maxCount;
+            public IntMinMax Amount => _amount;
+            public IntMinMax Count => _count;
             public FloatMinMax Interval => _interval;
             public AnimationCurve CountCurve => _countCurve;
             public AnimationCurve IntervalCurve => _intervalCurve;
