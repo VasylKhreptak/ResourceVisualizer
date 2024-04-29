@@ -1,3 +1,4 @@
+using System.Threading;
 using Graphics.ResourceVisualizers;
 using Graphics.UI;
 using Infrastructure.Services.PersistentData.Core;
@@ -27,21 +28,36 @@ namespace Test
             _persistentDataService = persistentDataService;
         }
 
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+
         #region MonoBehaviour
 
         private void Update()
         {
             if (Input.GetMouseButtonDown(0))
-                Spawn();
+                Collect();
             else if (Input.GetKeyDown(KeyCode.C))
                 ClearCoins();
             else if (Input.GetKeyDown(KeyCode.D))
                 Dispose();
+            else if (Input.GetMouseButtonDown(1))
+                Spend();
         }
 
         #endregion
 
-        private async void Spawn()
+        private async void Collect()
+        {
+            await _coinsVisualizer.Collect(_amount, GetMouseWorldPosition(), () => _coin.transform.position, _cts.Token);
+
+            Debug.Log("Collected");
+        }
+
+        private void ClearCoins() => _persistentDataService.Data.PlayerData.Coins.Clear();
+
+        private void Dispose() => _cts.Cancel();
+
+        private Vector3 GetMouseWorldPosition()
         {
             Camera camera = null;
 
@@ -50,13 +66,14 @@ namespace Test
 
             RectTransformUtility.ScreenPointToWorldPointInRectangle(_resourcesRoot.RectTransform, Input.mousePosition, camera, out Vector3 position);
 
-            await _coinsVisualizer.Collect(_amount, position, _coin.transform);
-            
-            Debug.Log("Completed");
+            return position;
         }
 
-        private void ClearCoins() => _persistentDataService.Data.PlayerData.Coins.Clear();
+        private async void Spend()
+        {
+            await _coinsVisualizer.Spend(_amount, _coin.transform.position, GetMouseWorldPosition, _cts.Token);
 
-        private void Dispose() => _coinsVisualizer.Dispose();
+            Debug.Log("Spent");
+        }
     }
 }

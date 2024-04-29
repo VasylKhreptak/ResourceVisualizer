@@ -1,6 +1,5 @@
 ﻿using System;
 using UniRx;
-using UnityEngine;
 
 namespace Plugins.Banks.Core
 {
@@ -35,11 +34,7 @@ namespace Plugins.Banks.Core
             if (HasEnough(value) == false)
                 return;
 
-            Debug.Log($"Value: {value}. Amount: {_amount.Value}");
-
             _amount.Value = Subtract(_amount.Value, value);
-
-            Debug.Log($" Amount: {_amount.Value}");
         }
 
         public void SetValue(T value)
