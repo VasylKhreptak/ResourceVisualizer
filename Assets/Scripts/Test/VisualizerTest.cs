@@ -7,7 +7,7 @@ using Zenject;
 
 namespace Test
 {
-    public class VisuzlierTest : MonoBehaviour
+    public class VisualizerTest : MonoBehaviour
     {
         [Header("Preferences")]
         [SerializeField] private int _amount = 100;
