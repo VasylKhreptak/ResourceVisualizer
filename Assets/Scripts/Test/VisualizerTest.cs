@@ -50,10 +50,8 @@ namespace Test
 
             RectTransformUtility.ScreenPointToWorldPointInRectangle(_resourcesRoot.RectTransform, Input.mousePosition, camera, out Vector3 position);
 
-            transform.position = position;
-
             await _coinsVisualizer.Collect(_amount, position, _coin.transform);
-
+            
             Debug.Log("Completed");
         }
 
