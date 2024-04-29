@@ -185,9 +185,9 @@ namespace Plugins.ResourceVisualizer
 
         #region Callbacks
 
-        protected abstract void OnSpent(int amount);
+        protected virtual void OnSpent(int amount) { }
 
-        protected abstract void OnCollected(int amount);
+        protected virtual void OnCollected(int amount) { }
 
         #endregion
 
