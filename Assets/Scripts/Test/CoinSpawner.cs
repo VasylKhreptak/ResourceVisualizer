@@ -8,6 +8,9 @@ namespace Test
 {
     public class CoinSpawner : MonoBehaviour
     {
+        [Header("Preferences")]
+        [SerializeField] private int _amount = 100;
+
         private Coin _coin;
         private CoinsVisualizer _coinsVisualizer;
         private ResourcesRoot _resourcesRoot;
@@ -24,7 +27,7 @@ namespace Test
 
         private void Update()
         {
-            if (Input.GetMouseButton(0) == false)
+            if (Input.GetMouseButtonDown(0) == false)
                 return;
 
             Camera camera = null;
@@ -36,7 +39,7 @@ namespace Test
 
             transform.position = position;
 
-            _coinsVisualizer.Collect(position, _coin.transform);
+            _coinsVisualizer.Collect(_amount, position, _coin.transform, () => Debug.Log("Completed"));
         }
 
         #endregion

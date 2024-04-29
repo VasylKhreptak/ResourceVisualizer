@@ -2,14 +2,12 @@ using Graphics.ResourceVisualizers;
 using Graphics.UI;
 using Plugins.ResourceVisualizer;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Zenject;
 
 namespace Level
 {
     public class LevelInstaller : MonoInstaller
     {
-        [FormerlySerializedAs("_resourceRoot")]
         [Header("References")]
         [SerializeField] private ResourcesRoot _resourcesRoot;
         [SerializeField] private Coin _coin;

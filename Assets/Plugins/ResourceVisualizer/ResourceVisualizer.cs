@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Plugins.Banks.Core;
+using Plugins.Banks.Integer;
 using Plugins.MinMaxProperties;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -10,30 +13,68 @@ namespace Plugins.ResourceVisualizer
     public abstract class ResourceVisualizer : IDisposable
     {
         private readonly ResourcesRoot _resourcesRoot;
+        private readonly IBank<int> _resourceBank;
         private readonly Preferences _preferences;
+        private readonly IBank<int> _spendBank;
 
-        protected ResourceVisualizer(ResourcesRoot resourcesRoot, Preferences preferences)
+        protected ResourceVisualizer(ResourcesRoot resourcesRoot, IBank<int> resourceBank, Preferences preferences)
         {
             _resourcesRoot = resourcesRoot;
+            _resourceBank = resourceBank;
             _preferences = preferences;
+            _spendBank = new IntegerBank();
         }
 
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public void Collect(Vector3 origin, Transform target, Action<int> onCollected = null, Action onCollectedAll = null) =>
-            Collect(origin, target, onCollected, onCollectedAll, _cancellationTokenSource.Token);
+        public void Collect(int amount, Vector3 fromWorld, Transform to, Action onCompleted = null) =>
+            Collect(amount, fromWorld, to, _cancellationTokenSource.Token, onCompleted);
 
-        private async void Collect(Vector3 origin, Transform target, Action<int> onCollected, Action onCollectedAll,
-            CancellationToken cancellationToken)
+        private async void Collect(int amount, Vector3 fromWorld, Transform to, CancellationToken cancellationToken, Action onCompleted = null)
         {
-            GameObject resourceInstance = Instantiate();
-            RectTransform resource = resourceInstance.GetComponent<RectTransform>();
-            PrepareResource(resource, origin);
+            if (amount <= 0)
+                return;
 
-            await MoveResource(resource, target, cancellationToken);
+            List<UniTask> resourceTasks = new List<UniTask>();
 
-            onCollected?.Invoke(1);
-            onCollectedAll?.Invoke();
+            float delay = 0f;
+            float delayIncrement = GetInterval(amount);
+
+            int count = GetCount(amount);
+            int maxAmountPerResource = amount % count == 0 ? amount / count : amount / count + 1;
+
+            for (int i = 0; i < count; i++)
+            {
+                int index = i;
+
+                UniTask task = UniTask.Create(async () =>
+                {
+                    bool canceled = await UniTask
+                        .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+                        .SuppressCancellationThrow();
+
+                    if (canceled)
+                        return;
+
+                    GameObject resourceInstance = Instantiate();
+                    RectTransform resource = resourceInstance.GetComponent<RectTransform>();
+                    PrepareResource(resource, fromWorld);
+
+                    await MoveResource(resource, to, cancellationToken);
+
+                    int amountPerResource = index != count - 1 ? maxAmountPerResource : amount - maxAmountPerResource * index;
+
+                    _resourceBank.Add(amountPerResource);
+                });
+
+                resourceTasks.Add(task);
+
+                delay += delayIncrement;
+            }
+
+            await UniTask.WhenAll(resourceTasks);
+
+            onCompleted?.Invoke();
         }
 
         private void PrepareResource(RectTransform resource, Vector3 worldSpawnPoint)
@@ -106,6 +147,18 @@ namespace Plugins.ResourceVisualizer
             return anchoredPosition;
         }
 
+        private int GetCount(int amount)
+        {
+            float t = (float)amount / _preferences.MaxAmount;
+            return Mathf.CeilToInt(_preferences.CountCurve.Evaluate(t) * _preferences.MaxCount);
+        }
+
+        private float GetInterval(int amount)
+        {
+            float t = (float)amount / _preferences.MaxAmount;
+            return _preferences.IntervalCurve.Evaluate(t) * _preferences.Interval.Max;
+        }
+
         [Serializable]
         public class Preferences
         {
@@ -118,8 +171,13 @@ namespace Plugins.ResourceVisualizer
             [SerializeField] private float _rotationSpeed = 5f;
             [SerializeField] private float _moveAcceleration;
             [SerializeField] private float _aimAcceleration;
-
+            [SerializeField] private int _maxAmount = 100;
+            [SerializeField] private int _maxCount = 10;
+            [SerializeField] private FloatMinMax _interval = new FloatMinMax(0.001f, 0.1f);
+            [SerializeField] private AnimationCurve _countCurve;
+            [SerializeField] private AnimationCurve _intervalCurve;
             public float DistanceThreshold => _distanceThreshold;
+
             public FloatMinMax StartScale => _startScale;
             public FloatMinMax StartRotation => _startRotation;
             public FloatMinMax StartMoveSpeed => _startMoveSpeed;
@@ -128,6 +186,11 @@ namespace Plugins.ResourceVisualizer
             public float RotationSpeed => _rotationSpeed;
             public float MoveAcceleration => _moveAcceleration;
             public float AimAcceleration => _aimAcceleration;
+            public int MaxAmount => _maxAmount;
+            public int MaxCount => _maxCount;
+            public FloatMinMax Interval => _interval;
+            public AnimationCurve CountCurve => _countCurve;
+            public AnimationCurve IntervalCurve => _intervalCurve;
         }
     }
 }

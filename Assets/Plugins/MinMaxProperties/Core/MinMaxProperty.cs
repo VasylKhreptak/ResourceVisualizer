@@ -1,5 +1,3 @@
-using System;
-
 namespace Plugins.MinMaxProperties.Core
 {
     public abstract class MinMaxProperty<T>
