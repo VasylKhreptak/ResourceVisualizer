@@ -183,7 +183,7 @@ namespace Plugins.ResourceVisualizer
 
         #endregion
 
-        #region Callbacs
+        #region Callbacks
 
         protected abstract void OnSpent(int amount);
 
