@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Plugins.Banks.Core;
+using Plugins.Extensions;
 using Plugins.MinMaxProperties;
 using UnityEngine;
 using AnimationCurveExtensions = Plugins.Extensions.AnimationCurveExtensions;
@@ -164,7 +165,7 @@ namespace Plugins.ResourceVisualizer
                 moveSpeed += _preferences.MoveAcceleration;
                 aimSpeed += _preferences.AimAcceleration;
 
-                if (Vector2.Distance(resource.anchoredPosition, WorldToAnchoredPoint(lastTargetPosition)) < _preferences.DistanceThreshold)
+                if (resource.anchoredPosition.IsCloseTo(WorldToAnchoredPoint(lastTargetPosition), _preferences.DistanceThreshold))
                     break;
             }
 
