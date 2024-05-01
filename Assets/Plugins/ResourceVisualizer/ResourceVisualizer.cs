@@ -214,7 +214,7 @@ namespace Plugins.ResourceVisualizer
         }
 
         private float GetInterval(int amount) =>
-            AnimationCurveExtensions.Evaluate(_preferences.IntervalCurve, amount, _preferences.Amount.Min, _preferences.Amount.Max,
+            _preferences.IntervalCurve.Evaluate(amount, _preferences.Amount.Min, _preferences.Amount.Max,
                 _preferences.Interval.Max, _preferences.Interval.Min);
 
         [Serializable]

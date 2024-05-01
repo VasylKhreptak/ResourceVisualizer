@@ -1,17 +1,10 @@
 namespace Plugins.MinMaxProperties.Core
 {
-    public abstract class MinMaxProperty<T>
+    public abstract class MinMaxProperty<T> : MinMaxData<T>
     {
-        public T Min;
-        public T Max;
+        protected MinMaxProperty() { }
 
-        public MinMaxProperty() { }
-
-        public MinMaxProperty(T min, T max)
-        {
-            Min = min;
-            Max = max;
-        }
+        protected MinMaxProperty(T min, T max) : base(min, max) { }
 
         public abstract T Random();
     }
