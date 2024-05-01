@@ -14,7 +14,7 @@ namespace Level
         [SerializeField] private Camera _camera;
 
         [Header("Preferences")]
-        [SerializeField] private ResourceVisualizer.Preferences _coinsVisualizerPreferences;
+        [SerializeField] private ResourceVisualizer<int>.Preferences _coinsVisualizerPreferences;
 
         #region MonoBehaviour
 

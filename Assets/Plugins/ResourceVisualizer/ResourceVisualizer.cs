@@ -6,29 +6,28 @@ using Plugins.Banks.Core;
 using Plugins.Extensions;
 using Plugins.MinMaxProperties;
 using UnityEngine;
-using AnimationCurveExtensions = Plugins.Extensions.AnimationCurveExtensions;
 using Random = UnityEngine.Random;
 
 namespace Plugins.ResourceVisualizer
 {
-    public abstract class ResourceVisualizer
+    public abstract class ResourceVisualizer<T> where T : IComparable<T>
     {
         private readonly ResourcesRoot _resourcesRoot;
-        private readonly IBank<int> _resourceBank;
+        private readonly IBank<T> _resourceBank;
         private readonly Preferences _preferences;
 
-        protected ResourceVisualizer(ResourcesRoot resourcesRoot, IBank<int> resourceBank, Preferences preferences)
+        protected ResourceVisualizer(ResourcesRoot resourcesRoot, IBank<T> resourceBank, Preferences preferences)
         {
             _resourcesRoot = resourcesRoot;
             _resourceBank = resourceBank;
             _preferences = preferences;
         }
 
-        private int _plannedSpendAmount;
+        private T _plannedSpendAmount;
 
-        public async UniTask Collect(int amount, Vector3 fromWorld, Func<Vector3> worldPositionGetter, CancellationToken cancellationToken)
+        public async UniTask Collect(T amount, Vector3 fromWorld, Func<Vector3> worldPositionGetter, CancellationToken cancellationToken)
         {
-            if (amount <= 0)
+            if (amount.CompareTo(default) is -1 or 0)
                 return;
 
             List<UniTask> resourceTasks = new List<UniTask>();
@@ -37,16 +36,16 @@ namespace Plugins.ResourceVisualizer
             float delayIncrement = GetInterval(amount);
 
             int count = GetCount(amount);
-            int maxAmountPerResource = Mathf.FloorToInt((float)amount / count);
-            int transferredAmount = 0;
+            T maxAmountPerResource = FloorToT(ToFloat(amount) / count);
+            T transferredAmount = default;
 
             for (int i = 0; i < count; i++)
             {
                 int index = i;
                 float capturedDelay = delay;
 
-                int amountPerResource = index + 1 == count ? amount - transferredAmount : maxAmountPerResource;
-                transferredAmount += amountPerResource;
+                T amountPerResource = index + 1 == count ? Subtract(amount, transferredAmount) : maxAmountPerResource;
+                transferredAmount = Add(transferredAmount, amountPerResource);
 
                 UniTask task = UniTask.Create(async () =>
                 {
@@ -75,9 +74,9 @@ namespace Plugins.ResourceVisualizer
             await UniTask.WhenAll(resourceTasks);
         }
 
-        public async UniTask Spend(int amount, Vector3 fromWorld, Func<Vector3> worldPositionGetter, CancellationToken cancellationToken)
+        public async UniTask Spend(T amount, Vector3 fromWorld, Func<Vector3> worldPositionGetter, CancellationToken cancellationToken)
         {
-            if (amount <= 0 || _resourceBank.HasEnough(amount + _plannedSpendAmount) == false)
+            if (amount.CompareTo(default) is -1 or 0 || _resourceBank.HasEnough(Add(amount, _plannedSpendAmount)) == false)
                 return;
 
             List<UniTask> resourceTasks = new List<UniTask>();
@@ -86,17 +85,17 @@ namespace Plugins.ResourceVisualizer
             float delayIncrement = GetInterval(amount);
 
             int count = GetCount(amount);
-            int maxAmountPerResource = Mathf.FloorToInt((float)amount / count);
-            int transferredAmount = 0;
+            T maxAmountPerResource = FloorToT(ToFloat(amount) / count);
+            T transferredAmount = default;
 
             for (int i = 0; i < count; i++)
             {
                 int index = i;
                 float capturedDelay = delay;
 
-                int amountPerResource = index + 1 == count ? amount - transferredAmount : maxAmountPerResource;
-                transferredAmount += amountPerResource;
-                _plannedSpendAmount += amountPerResource;
+                T amountPerResource = index + 1 == count ? Subtract(amount, transferredAmount) : maxAmountPerResource;
+                transferredAmount = Add(transferredAmount, amountPerResource);
+                _plannedSpendAmount = Add(_plannedSpendAmount, amountPerResource);
 
                 UniTask task = UniTask.Create(async () =>
                 {
@@ -111,7 +110,7 @@ namespace Plugins.ResourceVisualizer
                     RectTransform resource = resourceInstance.GetComponent<RectTransform>();
                     PrepareResource(resource, fromWorld);
 
-                    _plannedSpendAmount -= amountPerResource;
+                    _plannedSpendAmount = Subtract(_plannedSpendAmount, amountPerResource);
 
                     _resourceBank.Spend(amountPerResource);
                     OnSpent(amountPerResource);
@@ -181,13 +180,23 @@ namespace Plugins.ResourceVisualizer
 
         protected abstract void Destroy(GameObject gameObject);
 
+        protected abstract float ToFloat(T value);
+
+        protected abstract int ToInt(T value);
+
+        protected abstract T Add(T a, T b);
+
+        protected abstract T Subtract(T a, T b);
+
+        protected abstract T FloorToT(float value);
+
         #endregion
 
         #region Callbacks
 
-        protected virtual void OnSpent(int amount) { }
+        protected virtual void OnSpent(T amount) { }
 
-        protected virtual void OnCollected(int amount) { }
+        protected virtual void OnCollected(T amount) { }
 
         #endregion
 
@@ -205,16 +214,16 @@ namespace Plugins.ResourceVisualizer
             return anchoredPosition;
         }
 
-        private int GetCount(int amount)
+        private int GetCount(T amount)
         {
-            float evaluatedCount = AnimationCurveExtensions.Evaluate(_preferences.CountCurve, amount, _preferences.Amount.Min,
-                _preferences.Amount.Max, _preferences.Count.Min, _preferences.Count.Max);
+            float evaluatedCount = _preferences.CountCurve.Evaluate(ToFloat(amount), ToFloat(_preferences.Amount.Min),
+                ToFloat(_preferences.Amount.Max), _preferences.Count.Min, _preferences.Count.Max);
 
-            return Mathf.Min(amount, (int)evaluatedCount);
+            return Mathf.Min(ToInt(amount), (int)evaluatedCount);
         }
 
-        private float GetInterval(int amount) =>
-            _preferences.IntervalCurve.Evaluate(amount, _preferences.Amount.Min, _preferences.Amount.Max,
+        private float GetInterval(T amount) =>
+            _preferences.IntervalCurve.Evaluate(ToFloat(amount), ToFloat(_preferences.Amount.Min), ToFloat(_preferences.Amount.Max),
                 _preferences.Interval.Max, _preferences.Interval.Min);
 
         [Serializable]
@@ -229,7 +238,7 @@ namespace Plugins.ResourceVisualizer
             [SerializeField] private float _rotationSpeed = 5f;
             [SerializeField] private float _moveAcceleration;
             [SerializeField] private float _aimAcceleration;
-            [SerializeField] private IntMinMax _amount = new IntMinMax(1, 100);
+            [SerializeField] private MinMaxData<T> _amount;
             [SerializeField] private IntMinMax _count = new IntMinMax(1, 30);
             [SerializeField] private FloatMinMax _interval = new FloatMinMax(0.001f, 0.1f);
             [SerializeField] private AnimationCurve _countCurve;
@@ -244,7 +253,7 @@ namespace Plugins.ResourceVisualizer
             public float RotationSpeed => _rotationSpeed;
             public float MoveAcceleration => _moveAcceleration;
             public float AimAcceleration => _aimAcceleration;
-            public IntMinMax Amount => _amount;
+            public MinMaxData<T> Amount => _amount;
             public IntMinMax Count => _count;
             public FloatMinMax Interval => _interval;
             public AnimationCurve CountCurve => _countCurve;
